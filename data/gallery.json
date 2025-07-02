@@ -10,13 +10,8 @@
         },
         {
           "title": "Apple",
-          "domain": "apple.com",
+          "domain": "www.apple.com",
           "description": "Tech company with extensive Universal Links implementation"
-        },
-        {
-          "title": "Microsoft",
-          "domain": "microsoft.com",
-          "description": "Tech company with various app links across platforms"
         },
         {
           "title": "Meta",
@@ -29,13 +24,13 @@
       "name": "Social Media",
       "items": [
         {
-          "title": "Twitter",
-          "domain": "twitter.com",
+          "title": "X",
+          "domain": "x.com",
           "description": "Social media platform with mobile app integration"
         },
         {
           "title": "Instagram",
-          "domain": "instagram.com",
+          "domain": "www.instagram.com",
           "description": "Photo sharing platform with deep linking"
         },
         {
@@ -45,33 +40,8 @@
         },
         {
           "title": "TikTok",
-          "domain": "tiktok.com",
+          "domain": "www.tiktok.com",
           "description": "Video sharing platform with app integration"
-        }
-      ]
-    },
-    {
-      "name": "Banking",
-      "items": [
-        {
-          "title": "Bank of America",
-          "domain": "bankofamerica.com",
-          "description": "US banking institution with secure app links"
-        },
-        {
-          "title": "Intesa Sanpaolo",
-          "domain": "intesasanpaolo.com",
-          "description": "Italian banking group with mobile app integration"
-        },
-        {
-          "title": "BNP Paribas",
-          "domain": "bnpparibas.com",
-          "description": "French banking group with app links"
-        },
-        {
-          "title": "Deutsche Bank",
-          "domain": "deutschebank.de",
-          "description": "German banking institution with app integration"
         }
       ]
     },
@@ -80,17 +50,17 @@
       "items": [
         {
           "title": "Amazon",
-          "domain": "amazon.com",
+          "domain": "www.amazon.com",
           "description": "Online marketplace with extensive app linking"
         },
         {
           "title": "eBay",
-          "domain": "ebay.com",
+          "domain": "www.ebay.com",
           "description": "Online auction site with mobile app integration"
         },
         {
           "title": "Alibaba",
-          "domain": "alibaba.com",
+          "domain": "www.alibaba.com",
           "description": "Global wholesale marketplace with app links"
         },
         {

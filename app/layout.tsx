@@ -13,13 +13,13 @@ export const metadata: Metadata = {
   publisher: "App Link Explorer",
   openGraph: {
     type: "website",
-    title: "Universal Link Discovery | Check App Links for iOS and Android",
+    title: "Android App Links Discovery | Apple Universal Links Discovery | Check App Links for iOS and Android",
     description:
       "Discover which iOS and Android apps are linked to your website with our Universal Link and App Links checker tool. Verify app configurations instantly.",
     siteName: "App Link Explorer",
     images: [
       {
-        url: "https://app-link-explorer.vercel.app/api/og",
+        url: "https://applinkexplorer.vercel.app/api/og",
         width: 1200,
         height: 630,
         alt: "App Link Explorer - Discover connected apps",
@@ -28,10 +28,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Universal Link Discovery | Check App Links for iOS and Android",
+    title: "App Link Discovery | Check App Links for iOS and Android",
     description:
       "Discover which iOS and Android apps are linked to your website with our Universal Link and App Links checker tool. Verify app configurations instantly.",
-    images: ["https://app-link-explorer.vercel.app/api/og"],
+    images: ["https://applinkexplorer.vercel.app/api/og"],
   },
   robots: {
     index: true,
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://app-link-explorer.vercel.app",
+    canonical: "https://applinkexplorer.vercel.app",
   },
     generator: 'v0.dev'
 }
