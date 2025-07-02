@@ -1,6 +1,6 @@
-# App Link Explorer
+# [App Link Explorer](https://applinkexplorer.vercel.app/)
 
-A web tool to help visualize which iOS / Android apps are bound to a particular domain via **Universal Links** (iOS) and **App Links** (Android).  
+A web tool available [here](https://applinkexplorer.vercel.app/) to help visualize which iOS / Android apps are bound to a particular domain via **Universal Links** (iOS) and **App Links** (Android).  
 Enter a domain, hit _Analyse_ and the app instantly fetches the public association files (`.well-known/apple-app-site-association`, `assetlinks.json`) and displays the list of connected mobile applications.
 
 ---
