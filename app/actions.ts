@@ -1,5 +1,9 @@
 "use server"
 
+import { URL } from "url";
+import * as https from 'https';
+import * as http from 'http';
+
 export type RequestLog = {
   url: string
   status: number | null
@@ -243,6 +247,59 @@ function parseAppleUniversalLinksData(data: any): AppleUniversalLinksData | null
   }
 }
 
+// Helper function to make HTTP/HTTPS requests without Sec-* headers
+function makeHttpRequest(url: string, options: any = {}): Promise<{
+  statusCode: number,
+  headers: Record<string, string | string[]>,
+  body: string
+}> {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url)
+    const isHttps = urlObj.protocol === 'https:'
+    const client = isHttps ? https : http
+    
+    const requestOptions = {
+      hostname: urlObj.hostname,
+      port: urlObj.port || (isHttps ? 443 : 80),
+      path: urlObj.pathname + urlObj.search,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'AppLinkExplorer/1.0',
+        'Accept': '*/*',
+        ...options.headers
+      },
+      timeout: options.timeout || 30000
+    }
+
+    const req = client.request(requestOptions, (res) => {
+      let body = ''
+      
+      res.on('data', (chunk) => {
+        body += chunk
+      })
+      
+      res.on('end', () => {
+        resolve({
+          statusCode: res.statusCode || 0,
+          headers: res.headers as Record<string, string | string[]>,
+          body
+        })
+      })
+    })
+
+    req.on('error', (error) => {
+      reject(error)
+    })
+
+    req.on('timeout', () => {
+      req.destroy()
+      reject(new Error('Request timeout'))
+    })
+
+    req.end()
+  })
+}
+
 async function fetchAndProcessUrl(url: string, logs: RequestLog[], processData: (data: any) => void): Promise<boolean> {
   const startTime = performance.now()
   const log: RequestLog = {
@@ -256,41 +313,29 @@ async function fetchAndProcessUrl(url: string, logs: RequestLog[], processData: 
   }
 
   try {
-    // Use minimal headers with a specific user agent and accept headers
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "AppLinkExplorer/1.0",
-        Accept: "application/json, application/octet-stream, */*",
-      },
-      signal: AbortSignal.timeout(10000),
-    })
+    // Use the custom HTTP request function instead of fetch
+    const response = await makeHttpRequest(url)
 
     const endTime = performance.now()
     log.duration = Math.round(endTime - startTime)
-    log.status = response.status
-    log.contentType = response.headers.get("content-type")
+    log.status = response.statusCode
+    log.contentType = Array.isArray(response.headers['content-type']) 
+      ? response.headers['content-type'][0] 
+      : response.headers['content-type'] || null
 
     // Log all response headers for debugging
     const headers: Record<string, string> = {}
-    response.headers.forEach((value, key) => {
-      headers[key] = value
+    Object.entries(response.headers).forEach(([key, value]) => {
+      headers[key] = Array.isArray(value) ? value.join(', ') : value
     })
     log.headers = headers
 
-    // Clone the response to read it twice (once for text, once for JSON)
-    const responseClone = response.clone()
-
     // Always try to get the response body as text for logging
-    try {
-      const responseText = await responseClone.text()
-      log.responseBody = responseText.substring(0, 1000) // Limit to first 1000 chars to avoid huge logs
-    } catch (textError) {
-      log.responseBody = `[Failed to read response body: ${textError}]`
-    }
+    log.responseBody = response.body.substring(0, 1000) // Limit to first 1000 chars to avoid huge logs
 
-    if (response.ok) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       try {
-        const data = await response.json()
+        const data = JSON.parse(response.body)
         log.success = true
         processData(data)
         logs.push(log)
@@ -303,8 +348,9 @@ async function fetchAndProcessUrl(url: string, logs: RequestLog[], processData: 
       }
     } else {
       log.success = false
-      log.error = `HTTP ${response.status}`
+      log.error = `HTTP ${response.statusCode}`
       logs.push(log)
+      console.error(log)
       return false
     }
   } catch (error) {
@@ -313,6 +359,7 @@ async function fetchAndProcessUrl(url: string, logs: RequestLog[], processData: 
     log.success = false
     log.error = error instanceof Error ? error.message : String(error)
     logs.push(log)
+    console.error(error)
     return false
   }
 }
@@ -365,19 +412,18 @@ export async function lookupAppInAppStore(bundleId: string, countryCode: string)
   try {
     const url = `https://itunes.apple.com/lookup?bundleId=${bundleId}&country=${countryCode}`
 
-    const response = await fetch(url, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(10000), // 10 second timeout
+    const response = await makeHttpRequest(url, {
+      timeout: 10000, // 10 second timeout
     })
 
-    if (!response.ok) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       return {
         success: false,
-        errorMessage: `App Store lookup failed with status: ${response.status}`,
+        errorMessage: `App Store lookup failed with status: ${response.statusCode}`,
       }
     }
 
-    const data = await response.json()
+    const data = JSON.parse(response.body)
 
     // Check if any results were found
     if (data.resultCount === 0 || !data.results || data.results.length === 0) {
