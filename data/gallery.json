@@ -1,0 +1,104 @@
+{
+  "categories": [
+    {
+      "name": "Big Tech",
+      "items": [
+        {
+          "title": "Google",
+          "domain": "google.com",
+          "description": "Search engine and tech giant with multiple app links"
+        },
+        {
+          "title": "Apple",
+          "domain": "apple.com",
+          "description": "Tech company with extensive Universal Links implementation"
+        },
+        {
+          "title": "Microsoft",
+          "domain": "microsoft.com",
+          "description": "Tech company with various app links across platforms"
+        },
+        {
+          "title": "Meta",
+          "domain": "facebook.com",
+          "description": "Social media platform with multiple connected apps"
+        }
+      ]
+    },
+    {
+      "name": "Social Media",
+      "items": [
+        {
+          "title": "Twitter",
+          "domain": "twitter.com",
+          "description": "Social media platform with mobile app integration"
+        },
+        {
+          "title": "Instagram",
+          "domain": "instagram.com",
+          "description": "Photo sharing platform with deep linking"
+        },
+        {
+          "title": "LinkedIn",
+          "domain": "linkedin.com",
+          "description": "Professional networking platform with app links"
+        },
+        {
+          "title": "TikTok",
+          "domain": "tiktok.com",
+          "description": "Video sharing platform with app integration"
+        }
+      ]
+    },
+    {
+      "name": "Banking",
+      "items": [
+        {
+          "title": "Bank of America",
+          "domain": "bankofamerica.com",
+          "description": "US banking institution with secure app links"
+        },
+        {
+          "title": "Intesa Sanpaolo",
+          "domain": "intesasanpaolo.com",
+          "description": "Italian banking group with mobile app integration"
+        },
+        {
+          "title": "BNP Paribas",
+          "domain": "bnpparibas.com",
+          "description": "French banking group with app links"
+        },
+        {
+          "title": "Deutsche Bank",
+          "domain": "deutschebank.de",
+          "description": "German banking institution with app integration"
+        }
+      ]
+    },
+    {
+      "name": "E-commerce",
+      "items": [
+        {
+          "title": "Amazon",
+          "domain": "amazon.com",
+          "description": "Online marketplace with extensive app linking"
+        },
+        {
+          "title": "eBay",
+          "domain": "ebay.com",
+          "description": "Online auction site with mobile app integration"
+        },
+        {
+          "title": "Alibaba",
+          "domain": "alibaba.com",
+          "description": "Global wholesale marketplace with app links"
+        },
+        {
+          "title": "Shopify",
+          "domain": "shopify.com",
+          "description": "E-commerce platform with app integration"
+        }
+      ]
+    }
+  ]
+}
