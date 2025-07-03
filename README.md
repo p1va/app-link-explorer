@@ -42,6 +42,34 @@ TypeScript is configured with `strict: true`. While `next build` will perform a 
 pnpm exec tsc --noEmit
 ```
 
+### MCP Servers for coding assistants
+
+If using a coding assitant enabled with MCP a `.mcp.json` contain a few used during development. No installation step is needed for Playwright.
+For the Typescript LSP `go`, a LSP MCP adapter and the TS LPS need to be installed.
+
+```bash
+pnpm install -g typescript typescript-language-server
+```
+this can be tested with
+```bash
+typescript-language-server --stdio
+```
+
+For the go-based MCP adapter for LSPs
+
+```bash
+go install github.com/isaacphi/mcp-language-server@latest
+```
+
+which can be tested using
+
+```bash
+mcp-language-server \
+   --workspace . \
+   --lsp typescript-language-server \
+   -- --stdio
+```
+
 ---
 
 ## Production build
