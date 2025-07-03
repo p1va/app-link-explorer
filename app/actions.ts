@@ -81,7 +81,8 @@ export type AppStoreLookupResult = {
   errorMessage?: string
 }
 
-export async function checkUniversalLinks(inputUrl: string): Promise<DiscoveryResult> {
+// Helper function to normalize URL
+function normalizeUrl(inputUrl: string): string {
   // Process URL (add https:// if needed)
   let baseUrl = inputUrl.trim()
   if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
@@ -89,10 +90,12 @@ export async function checkUniversalLinks(inputUrl: string): Promise<DiscoveryRe
   }
 
   // Remove trailing slash if present
-  baseUrl = baseUrl.replace(/\/$/, "")
+  return baseUrl.replace(/\/$/, "")
+}
 
-  // Initialize result structure
-  const discoveryResult: DiscoveryResult = {
+// Helper function to initialize discovery result structure
+function initializeDiscoveryResult(baseUrl: string): DiscoveryResult {
+  return {
     android: {
       url: `${baseUrl}/.well-known/assetlinks.json`,
       logs: [],
@@ -107,42 +110,132 @@ export async function checkUniversalLinks(inputUrl: string): Promise<DiscoveryRe
       parsedData: null,
     },
   }
+}
 
-  // Fetch Android assetlinks.json
-  await fetchAndProcessUrl(`${baseUrl}/.well-known/assetlinks.json`, discoveryResult.android.logs, (data) => {
-    discoveryResult.android.data = data
-    discoveryResult.android.valid = Array.isArray(data)
+// Helper function to fetch Android assetlinks.json
+async function fetchAndroidLinks(baseUrl: string, androidResult: any): Promise<void> {
+  await fetchAndProcessUrl(`${baseUrl}/.well-known/assetlinks.json`, androidResult.logs, (data) => {
+    androidResult.data = data
+    androidResult.valid = Array.isArray(data)
   })
+}
 
+// Helper function to fetch Apple app-site-association with fallback
+async function fetchAppleLinks(baseUrl: string, appleResult: any): Promise<void> {
   // Fetch Apple app-site-association (primary location)
-  const appleResult = await fetchAndProcessUrl(
+  const primaryResult = await fetchAndProcessUrl(
     `${baseUrl}/.well-known/apple-app-site-association`,
-    discoveryResult.apple.logs,
-    (data) => {
-      discoveryResult.apple.data = data
-      discoveryResult.apple.valid = data && typeof data === "object" && "applinks" in data
-
-      // If valid, parse the Apple AASA data
-      if (discoveryResult.apple.valid) {
-        discoveryResult.apple.parsedData = parseAppleUniversalLinksData(data)
-      }
-    },
+    appleResult.logs,
+    (data) => processAppleData(data, appleResult),
   )
 
   // If primary Apple location fails, try fallback
-  if (!appleResult) {
-    await fetchAndProcessUrl(`${baseUrl}/apple-app-site-association`, discoveryResult.apple.logs, (data) => {
-      discoveryResult.apple.data = data
-      discoveryResult.apple.valid = data && typeof data === "object" && "applinks" in data
+  if (!primaryResult) {
+    await fetchAndProcessUrl(
+      `${baseUrl}/apple-app-site-association`, 
+      appleResult.logs, 
+      (data) => processAppleData(data, appleResult)
+    )
+  }
+}
 
-      // If valid, parse the Apple AASA data
-      if (discoveryResult.apple.valid) {
-        discoveryResult.apple.parsedData = parseAppleUniversalLinksData(data)
+export async function checkUniversalLinks(inputUrl: string): Promise<DiscoveryResult> {
+  const baseUrl = normalizeUrl(inputUrl)
+  const discoveryResult = initializeDiscoveryResult(baseUrl)
+
+  // Fetch both Android and Apple data
+  await fetchAndroidLinks(baseUrl, discoveryResult.android)
+  await fetchAppleLinks(baseUrl, discoveryResult.apple)
+
+  return discoveryResult
+}
+
+// Helper function to process Apple app-site-association data
+function processAppleData(data: any, appleResult: any): void {
+  appleResult.data = data
+  appleResult.valid = data && typeof data === "object" && "applinks" in data
+
+  // If valid, parse the Apple AASA data
+  if (appleResult.valid) {
+    appleResult.parsedData = parseAppleUniversalLinksData(data)
+  }
+}
+
+// Helper function to parse applinks service
+function parseAppleApplinksService(data: any): AppleAppConfig[] {
+  const applinks: AppleAppConfig[] = []
+  
+  if (data.applinks && data.applinks.details && Array.isArray(data.applinks.details)) {
+    data.applinks.details.forEach((detail: any) => {
+      // Get app identifiers
+      let appIDs: string[] = []
+      if (detail.appID) {
+        appIDs = [detail.appID]
+      } else if (detail.appIDs && Array.isArray(detail.appIDs)) {
+        appIDs = detail.appIDs
       }
+
+      // Process each app ID
+      appIDs.forEach((appID) => {
+        const appConfig: AppleAppConfig = {
+          appID,
+          paths: [],
+        }
+
+        // Process paths (older format)
+        if (detail.paths && Array.isArray(detail.paths)) {
+          detail.paths.forEach((path: string) => {
+            const exclude = path.startsWith("NOT ")
+            appConfig.paths.push({
+              path: exclude ? path.substring(4) : path,
+              exclude,
+            })
+          })
+        }
+
+        // Process components (newer format)
+        if (detail.components && Array.isArray(detail.components)) {
+          detail.components.forEach((component: any) => {
+            if (component && typeof component === "object") {
+              const pathRule: ApplePathRule = {
+                path: component["/"] || "/",
+                exclude: !!component.exclude,
+              }
+
+              // Add query parameters if present
+              if (component["?"] && typeof component["?"] === "object") {
+                pathRule.queryParameters = component["?"]
+              }
+
+              // Add fragment if present
+              if (component["#"] && typeof component["#"] === "string") {
+                pathRule.fragment = component["#"]
+              }
+
+              // Add comment if present
+              if (component.comment && typeof component.comment === "string") {
+                pathRule.comment = component.comment
+              }
+
+              appConfig.paths.push(pathRule)
+            }
+          })
+        }
+
+        applinks.push(appConfig)
+      })
     })
   }
 
-  return discoveryResult
+  return applinks
+}
+
+// Helper function to parse simple service (webcredentials, activitycontinuation, appclips)
+function parseSimpleAppleService(data: any, serviceName: string): { apps: string[] } | undefined {
+  if (data[serviceName] && data[serviceName].apps && Array.isArray(data[serviceName].apps)) {
+    return { apps: data[serviceName].apps }
+  }
+  return undefined
 }
 
 // Function to parse Apple Universal Links data
@@ -153,92 +246,18 @@ function parseAppleUniversalLinksData(data: any): AppleUniversalLinksData | null
     }
 
     const result: AppleUniversalLinksData = {
-      applinks: [],
+      applinks: parseAppleApplinksService(data),
     }
 
-    // Parse applinks service
-    if (data.applinks && data.applinks.details && Array.isArray(data.applinks.details)) {
-      data.applinks.details.forEach((detail: any) => {
-        // Get app identifiers
-        let appIDs: string[] = []
-        if (detail.appID) {
-          appIDs = [detail.appID]
-        } else if (detail.appIDs && Array.isArray(detail.appIDs)) {
-          appIDs = detail.appIDs
-        }
+    // Parse other services
+    const webcredentials = parseSimpleAppleService(data, "webcredentials")
+    if (webcredentials) result.webcredentials = webcredentials
 
-        // Process each app ID
-        appIDs.forEach((appID) => {
-          const appConfig: AppleAppConfig = {
-            appID,
-            paths: [],
-          }
+    const activitycontinuation = parseSimpleAppleService(data, "activitycontinuation")
+    if (activitycontinuation) result.activitycontinuation = activitycontinuation
 
-          // Process paths (older format)
-          if (detail.paths && Array.isArray(detail.paths)) {
-            detail.paths.forEach((path: string) => {
-              const exclude = path.startsWith("NOT ")
-              appConfig.paths.push({
-                path: exclude ? path.substring(4) : path,
-                exclude,
-              })
-            })
-          }
-
-          // Process components (newer format)
-          if (detail.components && Array.isArray(detail.components)) {
-            detail.components.forEach((component: any) => {
-              if (component && typeof component === "object") {
-                const pathRule: ApplePathRule = {
-                  path: component["/"] || "/",
-                  exclude: !!component.exclude,
-                }
-
-                // Add query parameters if present
-                if (component["?"] && typeof component["?"] === "object") {
-                  pathRule.queryParameters = component["?"]
-                }
-
-                // Add fragment if present
-                if (component["#"] && typeof component["#"] === "string") {
-                  pathRule.fragment = component["#"]
-                }
-
-                // Add comment if present
-                if (component.comment && typeof component.comment === "string") {
-                  pathRule.comment = component.comment
-                }
-
-                appConfig.paths.push(pathRule)
-              }
-            })
-          }
-
-          result.applinks.push(appConfig)
-        })
-      })
-    }
-
-    // Parse webcredentials service
-    if (data.webcredentials && data.webcredentials.apps && Array.isArray(data.webcredentials.apps)) {
-      result.webcredentials = {
-        apps: data.webcredentials.apps,
-      }
-    }
-
-    // Parse activitycontinuation service
-    if (data.activitycontinuation && data.activitycontinuation.apps && Array.isArray(data.activitycontinuation.apps)) {
-      result.activitycontinuation = {
-        apps: data.activitycontinuation.apps,
-      }
-    }
-
-    // Parse appclips service
-    if (data.appclips && data.appclips.apps && Array.isArray(data.appclips.apps)) {
-      result.appclips = {
-        apps: data.appclips.apps,
-      }
-    }
+    const appclips = parseSimpleAppleService(data, "appclips")
+    if (appclips) result.appclips = appclips
 
     return result
   } catch (error) {
